@@ -56,7 +56,7 @@ The project implements a **microservice-based, event-driven architecture**:
 - **1-2 GET `/tasks/{id}`**
   - Query MySQL for task status
 - **1-3 WebSocket `/ws`**
-  - Subscribe client to Redis Pub/Sub (`task.status.<task_id>`)
+  - Open broadcast stream for all task status changes via Redis Pub/Sub (`task.status`)
   - Push real-time status updates when Worker publishes events
 
 ---
@@ -64,10 +64,10 @@ The project implements a **microservice-based, event-driven architecture**:
 ### ⚙️ Worker Service
 - Subscribes to `task.created` queue from RabbitMQ
 - For each message:
-  1. Update task to `PROCESSING` in MySQL
-  2. Simulate or perform real work
-  3. Update task to `DONE` or `FAILED`
-  4. Publish status to Redis (`task.status.<task_id>`)
+  1. Mark the task `PROCESSING` in MySQL and broadcast the update
+  2. Inspect payload → if it contains a `message` field mark the task `DONE`, otherwise `FAILED`
+  3. Handle unexpected errors by flagging the task `FAILED`
+  4. Publish final status to the Redis broadcast channel (`task.status`)
 - Supports retries, backoff, and idempotency check
 
 ---
@@ -81,21 +81,21 @@ The project implements a **microservice-based, event-driven architecture**:
 ```json
 {
   "task_id": "uuid",
-  "payload": { "param": 123 },
+  "payload": { "message": "Task complete" },
   "requested_at": "2025-10-13T02:30:00Z"
 }
 ```
+> The worker expects incoming payloads to include a `message` field; if it is missing the task is marked `FAILED`.
 ---
 ### 📡 Redis Pub/Sub
-**Channel:** `task.status.<task_id>`
+**Channel:** `task.status`
 **Message Example:**
 ```json
 {
   "task_id": "uuid",
   "status": "PENDING|PROCESSING|DONE|FAILED",
-  "progress": 0.0,
   "updated_at": "2025-10-13T02:31:00Z",
-  "message": "optional message"
+  "message": "Task complete"
 }
 ```
 ---

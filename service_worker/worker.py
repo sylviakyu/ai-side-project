@@ -97,36 +97,64 @@ async def handle_message(
             logger.exception("Invalid task.created payload", exc_info=exc)
             return
 
-        final_status = TaskStatus.DONE
-        status_timestamp = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc)
+        async with database.session() as session:
+            result = await session.execute(select(Task).where(Task.id == event.task_id))
+            task = result.scalar_one_or_none()
+            if task is None:
+                logger.warning("Task %s not found for processing", event.task_id)
+                return
+
+            task.status = TaskStatus.PROCESSING
+            task.updated_at = now
+            task.finished_at = None
+            session.add(task)
+            await session.commit()
+
+        await redis.publish_status_update(
+            event.task_id,
+            {
+                "task_id": event.task_id,
+                "status": TaskStatus.PROCESSING.value,
+                "updated_at": now.isoformat(),
+            },
+        )
+
+        payload_data = event.payload if isinstance(event.payload, dict) else None
+        if payload_data and "message" in payload_data:
+            final_status = TaskStatus.DONE
+            status_message = payload_data.get("message")
+        else:
+            final_status = TaskStatus.FAILED
+            status_message = "Payload missing required 'message' field"
+
+        final_timestamp = datetime.now(timezone.utc)
 
         try:
             async with database.session() as session:
                 result = await session.execute(select(Task).where(Task.id == event.task_id))
                 task = result.scalar_one_or_none()
                 if task is None:
-                    logger.warning("Task %s not found for processing", event.task_id)
-                    return
-
-                task.status = TaskStatus.DONE
-                task.updated_at = status_timestamp
-                task.finished_at = status_timestamp
-                session.add(task)
-                await session.commit()
+                    logger.warning("Task %s missing while applying final status", event.task_id)
+                else:
+                    task.status = final_status
+                    task.updated_at = final_timestamp
+                    task.finished_at = final_timestamp
+                    session.add(task)
+                    await session.commit()
         except Exception as exc:
+            logger.exception("Final status update failed for task %s", event.task_id, exc_info=exc)
             final_status = TaskStatus.FAILED
-            status_timestamp = datetime.now(timezone.utc)
-            logger.exception("Failed to process task %s", event.task_id, exc_info=exc)
+            final_timestamp = datetime.now(timezone.utc)
+            status_message = str(exc)
 
             async with database.session() as session:
                 result = await session.execute(select(Task).where(Task.id == event.task_id))
                 task = result.scalar_one_or_none()
-                if task is None:
-                    logger.warning("Task %s missing while marking failure", event.task_id)
-                else:
+                if task is not None:
                     task.status = TaskStatus.FAILED
-                    task.updated_at = status_timestamp
-                    task.finished_at = status_timestamp
+                    task.updated_at = final_timestamp
+                    task.finished_at = final_timestamp
                     session.add(task)
                     await session.commit()
 
@@ -135,7 +163,8 @@ async def handle_message(
             {
                 "task_id": event.task_id,
                 "status": final_status.value,
-                "updated_at": status_timestamp.isoformat(),
+                "updated_at": final_timestamp.isoformat(),
+                **({"message": status_message} if status_message else {}),
             },
         )
 
