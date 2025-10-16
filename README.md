@@ -146,15 +146,15 @@ CREATE INDEX idx_tasks_status ON tasks (status);
 }
 ```
 ---
-**WebSocket** `/ws?task_id=<uuid>`
-* Client subscribes to receive Redis Pub/Sub updates for task status.
+**WebSocket** `/ws`
+* Client receives a broadcast stream of all task status updates via Redis Pub/Sub.
 
 * Example Push:
     ```json
     {
     "task_id": "uuid",
-    "status": "PROCESSING",
-    "progress": 0.5
+    "status": "DONE",
+    "updated_at": "2025-10-13T02:31:00Z"
     }
     ```
 ---
@@ -219,7 +219,7 @@ DB_CONNECT_BACKOFF=2.0
 | `redis`    | Pub/Sub for real-time updates |
 | `rabbitmq` | Message broker for tasks      |
 
-> The `migrate` service runs alembic upgrade head on startup and exits once it succeeds. The `api` and `worker` services will wait until this service has completed before starting.
+> The `migrate` service runs `alembic upgrade head` on startup and exits once it succeeds. The `api` (launching `uvicorn --reload` for rapid iteration) and `worker` services wait until this service finishes before starting.
 
 ### Manual Migration
 
