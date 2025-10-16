@@ -53,14 +53,14 @@ Stop the stack with `Ctrl+C` or `docker compose down`.
 
 ### Backend (FastAPI)
 ```bash
-pip install -r requirements.txt
+pip install -r deploy/requirements.txt
 uvicorn service_api.app:app --reload
 ```
 Keep MySQL/Redis/RabbitMQ running via Docker (use `docker compose` but disable the `api` service with `--scale api=0` if needed).
 
 ### Worker
 ```bash
-pip install -r requirements.txt
+pip install -r deploy/requirements.txt
 python -m service_worker.worker
 ```
 
