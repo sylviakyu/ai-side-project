@@ -279,7 +279,7 @@ Once the stack is running, open `http://localhost:5001` to:
 | API + domain modelling  | Copilot drafted FastAPI routes, Pydantic schemas, SQLAlchemy  | 1.5h saved                  |
 | Worker event handling   | ChatGPT scaffolded consumer flow and error handling branches  | 4h saved                    |
 | Frontend UX             | Copilot produced React components and WebSocket wiring        | 5d saved                    |
-| Tooling & documentation | ChatGPT generated CI workflow, README sections, env examples  | 1h saved                    |
+| Tooling & documentation | ChatGPT generated CI workflow, README sections, env examples  | 2h saved                    |
 | **Total**               | —                                                             | **~65% faster development** |
 ---
 ## Future Enhancements
