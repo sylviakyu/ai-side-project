@@ -227,7 +227,7 @@ DB_CONNECT_BACKOFF=2.0
 | `redis`    | Pub/Sub for real-time updates |
 | `rabbitmq` | Message broker for tasks      |
 
-> The `migrate` service runs `alembic upgrade head` on startup and exits once it succeeds. The `api` (launching `uvicorn --reload` for rapid iteration) and `worker` services wait until this service finishes before starting.
+> The `migrate` service runs `alembic -c alembic/alembic.ini upgrade head` on startup and exits once it succeeds. The `api` (launching `uvicorn --reload` for rapid iteration) and `worker` services wait until this service finishes before starting.
 
 ### Manual Migration
 

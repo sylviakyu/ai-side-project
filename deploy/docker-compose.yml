@@ -35,7 +35,7 @@ services:
       - mysql
     env_file:
       - env.example
-    command: ["sh", "-c", "python scripts/wait_for_db.py && alembic upgrade head"]
+    command: ["sh", "-c", "python scripts/wait_for_db.py && alembic -c alembic/alembic.ini upgrade head"]
     restart: "no"
 
   api:

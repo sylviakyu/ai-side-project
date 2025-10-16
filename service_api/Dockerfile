@@ -13,7 +13,6 @@ COPY taskflow_core ./taskflow_core
 COPY service_api ./service_api
 COPY scripts ./scripts
 COPY alembic ./alembic
-COPY alembic.ini ./alembic.ini
 
 EXPOSE 8000
 
