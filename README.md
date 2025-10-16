@@ -278,7 +278,7 @@ Once the stack is running, open `http://localhost:5001` to:
 | Architecture framing    | ChatGPT iterated on service boundaries and messaging patterns | Reduced planning time       |
 | API + domain modelling  | Copilot drafted FastAPI routes, Pydantic schemas, SQLAlchemy  | 1.5h saved                  |
 | Worker event handling   | ChatGPT scaffolded consumer flow and error handling branches  | 4h saved                    |
-| Frontend UX             | Copilot produced React components and WebSocket wiring        | 5d saved                    |
+| Frontend UX             | Copilot produced React components and WebSocket wiring        | 8h saved                    |
 | Tooling & documentation | ChatGPT generated CI workflow, README sections, env examples  | 2h saved                    |
 | **Total**               | —                                                             | **~65% faster development** |
 ---
