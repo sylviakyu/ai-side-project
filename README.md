@@ -1,54 +1,41 @@
-# 🧩 TaskFlow – AI-assisted Event-Driven Backend (Multi-Service Architecture)
+# 🧩 TaskFlow – Async Task Orchestrator (FastAPI · RabbitMQ · Redis · React)
 
 ## Overview
-**TaskFlow** is a one-day proof-of-concept demonstrating how AI-assisted development (ChatGPT + GitHub Copilot) can drastically accelerate backend delivery.
+**TaskFlow** is a compact, multi-service demo that showcases how an asynchronous job pipeline can be built end-to-end with modern Python tooling and a reactive UI.
 
-The project implements a **microservice-based, event-driven architecture**:
-- A **FastAPI async REST API** for task creation, retrieval, and WebSocket status updates
-- A **Worker Service** consuming tasks from **RabbitMQ**
-- **MySQL** as the single source of truth for task states
-- **Redis Pub/Sub + WebSocket** for real-time client notifications
-- A **React** dashboard for visualising tasks, creating new work, and receiving live updates
+The current stack combines:
+- A **FastAPI** service that exposes REST endpoints for task CRUD, a WebSocket relay for live updates, and wiring to Redis/RabbitMQ/MySQL through shared infrastructure.
+- A **worker service** that consumes RabbitMQ events, updates task lifecycle state in MySQL, and publishes Redis notifications.
+- A **React** dashboard that lists tasks, shows per-task details, submits new work, and renders toast notifications sourced from the WebSocket stream.
 
-> The system mimics a real-world asynchronous processing pipeline commonly used in AI workflow orchestration (like PEGAAi / MLOps task scheduling).
+The repository demonstrates realistic service boundaries, shared domain models (`taskflow_core/`), and docker-compose orchestration so the full flow can be spun up locally.
 
 ---
 
 ## System Architecture
 ```
-    ┌─────────────────────────────┐
-    │        API Service          │
-    │  FastAPI (async)            │
-    │  1-1 POST /tasks            │
-    │  1-2 GET  /tasks/{id}       │
-    │  1-3 WS  /ws (Redis PubSub) │
-    └───────┬────────────────────┬┘
-            │                    │
- Publish MQ │                    │ Subscribe Redis
-            │                    │
-     ┌──────▼───────────────┐    │
-     │        RabbitMQ      │    │
-     │   Exchange: task.*   │    │
-     └───────────┬──────────┘    │
-                 │               │
-          ┌──────▼───────────┐   │
-          │      Worker      │   │
-          │  Consume MQ      │   │
-          │  Process task    │   │
-          │  Update MySQL    │   │
-          │  Publish Redis   │   │
-          └─────────┬────────┘   │
-                    │            │
-            ┌───────▼──────────┐ │
-            │      Redis       │<┘
-            │   Pub/Sub        │
-            └─────────┬────────┘
-                      │
-              ┌───────▼──────────┐
-              │     MySQL        │
-              │  tasks (status)  │
-              └──────────────────┘
+React SPA(Single Page Application) (frontend/)
+   │  REST: POST /tasks, GET /tasks, GET /tasks/{id}
+   │  WebSocket: /ws for live status
+   ▼
+FastAPI API (service_api/)
+   │  Shared models + SQLAlchemy session from taskflow_core
+   ├─ Persist/read task rows in MySQL
+   ├─ Publish task.created events to RabbitMQ exchange (task.topic)
+   └─ Stream Redis `task.status` channel to WebSocket clients
+          ▲
+          │  Redis Pub/Sub
+Async Worker (service_worker/)
+   │  Shared models + SQLAlchemy session from taskflow_core
+   ├─ Consume RabbitMQ queue bound to routing key task.created
+   ├─ Update task state and timestamps in MySQL
+   └─ Publish task.status payloads back to Redis
 ```
+
+Supporting packages:
+- `taskflow_core/` centralises SQLAlchemy models, Pydantic schemas, and database helpers shared by the API and worker.
+- `deploy/` provides docker-compose definitions and environment templates for the full stack.
+- `scripts/` contains local utilities (e.g. seeding, linting) that assume the same environment variables as the services.
 ---
 
 ## Services
@@ -286,29 +273,21 @@ Once the stack is running, open `http://localhost:5001` to:
     * Start full stack → create task → Worker processes → WS receives DONE event
 ---
 ## AI-assisted Development
-| Stage               | AI Role                                            | Benefit                     |
-| ------------------- | -------------------------------------------------- | --------------------------- |
-| Architecture design | ChatGPT suggested full microservice flow           | Reduced planning time       |
-| CRUD & schema       | ChatGPT generated FastAPI routes & Pydantic models | 1.5h saved                  |
-| MQ integration      | Copilot completed async producer/consumer          | 2h saved                    |
-| Testing & CI        | ChatGPT produced pytest + Actions YAML             | 1h saved                    |
-| Documentation       | ChatGPT generated README & diagrams                | 1h saved                    |
-| **Total**           | —                                                  | **~65% faster development** |
+| Stage                   | AI Role                                                       | Benefit                     |
+| ----------------------- | ------------------------------------------------------------- | --------------------------- |
+| Architecture framing    | ChatGPT iterated on service boundaries and messaging patterns | Reduced planning time       |
+| API + domain modelling  | Copilot drafted FastAPI routes, Pydantic schemas, SQLAlchemy  | 1.5h saved                  |
+| Worker event handling   | ChatGPT scaffolded consumer flow and error handling branches  | 4h saved                    |
+| Frontend UX             | Copilot produced React components and WebSocket wiring        | 5d saved                    |
+| Tooling & documentation | ChatGPT generated CI workflow, README sections, env examples  | 1h saved                    |
+| **Total**               | —                                                             | **~65% faster development** |
 ---
 ## Future Enhancements
 * Replace Worker with Kubernetes Jobs for scalable processing
-
-* Add Prometheus metrics (queue depth, task duration)
-
-* Implement Dead-letter queue for failed tasks
-
-* Build a simple web dashboard to visualize task lifecycle
+* Add pagination, filtering, and search across `/tasks` plus matching UI controls for large backlogs.
+* Persist an event history table so the dashboard can show step-by-step timelines instead of only the latest status.
+* Expose Prometheus metrics and OpenTelemetry traces from both services for queue depth, processing duration, and failure rates.
+* Introduce a RabbitMQ dead-letter exchange with alerting so poisoned messages are quarantined rather than retried indefinitely.
 ---
 ## Summary
-TaskFlow demonstrates how AI-assisted tools can:
-
-* Rapidly bootstrap a production-like backend system
-* Handle asynchronous, event-driven workloads
-* Combine multiple microservices with minimal boilerplate
-
-🧠 Built with FastAPI, RabbitMQ, Redis, MySQL — and a little help from AI.
+TaskFlow illustrates how a lightweight set of services can deliver an async, event-driven workflow with shared contracts and instant UI feedback. The project highlights practical use of FastAPI, RabbitMQ, Redis, MySQL, and React—plus AI pair-programming—to compress the time from idea to running system.
