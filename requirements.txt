@@ -1,0 +1,11 @@
+aio-pika>=9.2
+asyncmy>=0.2
+fastapi>=0.110
+httpx>=0.24
+pydantic>=1.10,<2
+pytest>=7.4
+pytest-asyncio>=0.21
+redis>=5.0
+SQLAlchemy>=2.0
+uvicorn[standard]>=0.24
+cryptography>=41
