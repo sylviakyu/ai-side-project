@@ -19,6 +19,13 @@ async def create_task(
     return await service.create_task(payload)
 
 
+@router.get("", response_model=list[TaskRead])
+async def list_tasks(
+    service: TaskService = Depends(get_task_service),
+) -> list[TaskRead]:
+    return await service.list_tasks()
+
+
 @router.get("/{task_id}", response_model=TaskRead)
 async def get_task(
     task_id: str,

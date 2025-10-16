@@ -37,6 +37,9 @@ class InMemoryTaskService:
     async def get_task(self, task_id: str) -> Optional[TaskRead]:
         return self._tasks.get(task_id)
 
+    async def list_tasks(self) -> list[TaskRead]:
+        return list(self._tasks.values())
+
 
 @pytest.fixture()
 def client():
@@ -73,3 +76,17 @@ def test_get_task_returns_created_task(client: TestClient):
     payload = get_response.json()
     assert payload["task_id"] == task_id
     assert payload["status"] == TaskStatus.PENDING.value
+
+
+def test_list_tasks_returns_all_created_tasks(client: TestClient):
+    titles = ["Task A", "Task B"]
+    for title in titles:
+        client.post("/tasks", json={"title": title})
+
+    response = client.get("/tasks")
+    assert response.status_code == 200
+    body = response.json()
+    assert isinstance(body, list)
+    returned_titles = {item["title"] for item in body}
+    for title in titles:
+        assert title in returned_titles
