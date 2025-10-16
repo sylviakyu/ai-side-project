@@ -18,13 +18,6 @@ async def websocket_endpoint(
     websocket: WebSocket,
     redis: Redis | None = Depends(redis_client_dependency),
 ) -> None:
-    task_id = websocket.query_params.get("task_id")
-    if not task_id:
-        await websocket.accept()
-        await websocket.send_text(json.dumps(websocket_error("Missing task_id query parameter")))
-        await websocket.close()
-        return
-
     if redis is None:
         await websocket.accept()
         await websocket.send_text(json.dumps(websocket_error("Realtime updates unavailable")))
@@ -33,7 +26,7 @@ async def websocket_endpoint(
 
     await websocket.accept()
     try:
-        async for payload in stream_task_updates(redis, task_id):
+        async for payload in stream_task_updates(redis):
             await websocket.send_text(payload)
     except WebSocketDisconnect:
         return

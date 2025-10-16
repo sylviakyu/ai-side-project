@@ -62,6 +62,11 @@ class TaskService:
 
         return _to_schema(task)
 
+    async def list_tasks(self) -> list[TaskRead]:
+        result = await self._session.execute(select(Task).order_by(Task.created_at.desc()))
+        tasks = result.scalars().all()
+        return [_to_schema(task) for task in tasks]
+
     async def get_task(self, task_id: str) -> Optional[TaskRead]:
         query = select(Task).where(Task.id == task_id)
         result = await self._session.execute(query)

@@ -8,6 +8,9 @@ from redis.asyncio import Redis, from_url
 from taskflow_core.schemas import TaskStatusMessage
 
 
+BROADCAST_CHANNEL = "task.status"
+
+
 class RedisPublisher:
     """Publish task status updates via Redis Pub/Sub."""
 
@@ -32,8 +35,12 @@ class RedisPublisher:
     async def publish(self, message: TaskStatusMessage) -> None:
         if self._client is None:
             raise RuntimeError("Redis client is not connected.")
-        channel = f"task.status.{message.task_id}"
-        await self._client.publish(channel, json.dumps(message.dict()))
+        await self._client.publish(BROADCAST_CHANNEL, message.json())
+
+    async def publish_status_update(self, task_id: str, payload: dict) -> None:
+        if self._client is None:
+            raise RuntimeError("Redis client is not connected.")
+        await self._client.publish(BROADCAST_CHANNEL, json.dumps(payload))
 
     @property
     def client(self) -> Redis:

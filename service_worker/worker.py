@@ -4,17 +4,18 @@ import asyncio
 import json
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 
 from aio_pika import IncomingMessage
+from sqlalchemy import select
 
-from taskflow_core import Database
+from taskflow_core import Database, Task, TaskStatus
 from taskflow_core.schemas import TaskCreatedMessage
 
 from .core.config import get_settings
 from .infra.cache import RedisPublisher
 from .infra.db import create_database
 from .infra.mq import TaskQueueConsumer
-from .services.processor import TaskProcessor
 
 
 logger = logging.getLogger(__name__)
@@ -85,7 +86,7 @@ async def app_lifespan():
 
 async def handle_message(
     database: Database,
-    processor: TaskProcessor,
+    redis: RedisPublisher,
     message: IncomingMessage,
 ) -> None:
     async with message.process(ignore_processed=True):
@@ -96,15 +97,52 @@ async def handle_message(
             logger.exception("Invalid task.created payload", exc_info=exc)
             return
 
-        async with database.session() as session:
-            await processor.process(session, event.task_id, event.payload)
+        final_status = TaskStatus.DONE
+        status_timestamp = datetime.now(timezone.utc)
+
+        try:
+            async with database.session() as session:
+                result = await session.execute(select(Task).where(Task.id == event.task_id))
+                task = result.scalar_one_or_none()
+                if task is None:
+                    logger.warning("Task %s not found for processing", event.task_id)
+                    return
+
+                task.status = TaskStatus.DONE
+                task.updated_at = status_timestamp
+                task.finished_at = status_timestamp
+                session.add(task)
+                await session.commit()
+        except Exception as exc:
+            final_status = TaskStatus.FAILED
+            status_timestamp = datetime.now(timezone.utc)
+            logger.exception("Failed to process task %s", event.task_id, exc_info=exc)
+
+            async with database.session() as session:
+                result = await session.execute(select(Task).where(Task.id == event.task_id))
+                task = result.scalar_one_or_none()
+                if task is None:
+                    logger.warning("Task %s missing while marking failure", event.task_id)
+                else:
+                    task.status = TaskStatus.FAILED
+                    task.updated_at = status_timestamp
+                    task.finished_at = status_timestamp
+                    session.add(task)
+                    await session.commit()
+
+        await redis.publish_status_update(
+            event.task_id,
+            {
+                "task_id": event.task_id,
+                "status": final_status.value,
+                "updated_at": status_timestamp.isoformat(),
+            },
+        )
 
 
 async def run_worker() -> None:
     async with app_lifespan() as (database, redis, consumer):
-        processor = TaskProcessor(redis)
-
-        await consumer.consume(lambda message: handle_message(database, processor, message))
+        await consumer.consume(lambda message: handle_message(database, redis, message))
 
         stop_event = asyncio.Event()
         await stop_event.wait()

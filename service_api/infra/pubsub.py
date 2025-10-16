@@ -5,12 +5,14 @@ from typing import AsyncIterator
 from redis.asyncio import Redis
 
 
-async def stream_task_updates(redis: Redis, task_id: str) -> AsyncIterator[str]:
-    """Yield messages from the task-specific Redis channel."""
+BROADCAST_CHANNEL = "task.status"
 
-    channel_name = f"task.status.{task_id}"
+
+async def stream_task_updates(redis: Redis) -> AsyncIterator[str]:
+    """Yield messages for all task status updates from Redis."""
+
     pubsub = redis.pubsub()
-    await pubsub.subscribe(channel_name)
+    await pubsub.subscribe(BROADCAST_CHANNEL)
     try:
         async for message in pubsub.listen():
             if message["type"] != "message":
@@ -19,5 +21,5 @@ async def stream_task_updates(redis: Redis, task_id: str) -> AsyncIterator[str]:
             if data:
                 yield data
     finally:
-        await pubsub.unsubscribe(channel_name)
+        await pubsub.unsubscribe(BROADCAST_CHANNEL)
         await pubsub.close()
