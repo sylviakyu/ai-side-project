@@ -21,27 +21,32 @@ The project implements a **microservice-based, event-driven architecture**:
     │  1-1 POST /tasks            │
     │  1-2 GET  /tasks/{id}       │
     │  1-3 WS  /ws (Redis PubSub) │
-    └───────┬─────────┬───────────┘
-            │         │
- Publish MQ │         │ Subscribe Redis
-            │         ▼
-     ┌──────▼───────────────┐
-     │        Redis         │
-     │   Pub/Sub: task.*    │
-     └───────────┬──────────┘
-                 │
-          ┌──────▼───────────┐
-          │      Worker      │
-          │  Consume MQ      │
-          │  Process task    │
-          │  Update MySQL    │
-          │  Publish Redis   │
-          └─────────┬────────┘
-                    │
-            ┌───────▼──────────┐
-            │     MySQL        │
-            │  tasks (status)  │
-            └──────────────────┘
+    └───────┬────────────────────┬┘
+            │                    │
+ Publish MQ │                    │ Subscribe Redis
+            │                    │
+     ┌──────▼───────────────┐    │
+     │        RabbitMQ      │    │
+     │   Exchange: task.*   │    │
+     └───────────┬──────────┘    │
+                 │               │
+          ┌──────▼───────────┐   │
+          │      Worker      │   │
+          │  Consume MQ      │   │
+          │  Process task    │   │
+          │  Update MySQL    │   │
+          │  Publish Redis   │   │
+          └─────────┬────────┘   │
+                    │            │
+            ┌───────▼──────────┐ │
+            │      Redis       │<┘
+            │   Pub/Sub        │
+            └─────────┬────────┘
+                      │
+              ┌───────▼──────────┐
+              │     MySQL        │
+              │  tasks (status)  │
+              └──────────────────┘
 ```
 ---
 
