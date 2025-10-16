@@ -7,6 +7,7 @@ import asyncio
 import logging
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from taskflow_core import Database
 
@@ -83,6 +84,18 @@ def create_app(*, with_infra: bool = True) -> FastAPI:
             yield
 
     application = FastAPI(title="TaskFlow API", lifespan=lifespan)
+
+    origins = [origin.strip() for origin in settings.cors_allow_origins.split(",") if origin.strip()]
+    if not origins:
+        origins = ["*"]
+
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @application.get("/healthz")
     async def healthcheck() -> dict[str, str]:

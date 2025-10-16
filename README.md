@@ -8,6 +8,7 @@ The project implements a **microservice-based, event-driven architecture**:
 - A **Worker Service** consuming tasks from **RabbitMQ**
 - **MySQL** as the single source of truth for task states
 - **Redis Pub/Sub + WebSocket** for real-time client notifications
+- A **React** dashboard for visualising tasks, creating new work, and receiving live updates
 
 > The system mimics a real-world asynchronous processing pipeline commonly used in AI workflow orchestration (like PEGAAi / MLOps task scheduling).
 
@@ -74,6 +75,11 @@ The project implements a **microservice-based, event-driven architecture**:
   3. Handle unexpected errors by flagging the task `FAILED`
   4. Publish final status to the Redis broadcast channel (`task.status`)
 - Supports retries, backoff, and idempotency check
+
+### 🖥️ Frontend (React)
+- Presents task list, detail view, and creation form
+- Opens a WebSocket connection to stream status changes in real time
+- Targets the API via `REACT_APP_API_BASE` and `REACT_APP_WS_URL` environment variables
 
 ---
 
@@ -166,6 +172,10 @@ CREATE INDEX idx_tasks_status ON tasks (status);
 ## Folder Structure
 ```bash
 taskflow/
+  frontend/
+    src/
+    Dockerfile
+    package.json
   service_api/
     app.py
     api/
@@ -205,6 +215,7 @@ REDIS_URL=redis://redis:6379/0
 RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
 DB_CONNECT_ATTEMPTS=10
 DB_CONNECT_BACKOFF=2.0
+CORS_ALLOW_ORIGINS=*
 
 # Worker
 WORKER_PREFETCH=8
@@ -212,6 +223,10 @@ RABBITMQ_CONNECT_ATTEMPTS=10
 RABBITMQ_CONNECT_BACKOFF=2.0
 DB_CONNECT_ATTEMPTS=10
 DB_CONNECT_BACKOFF=2.0
+
+# Frontend (optional overrides when running locally)
+# REACT_APP_API_BASE=http://localhost:8000
+# REACT_APP_WS_URL=ws://localhost:8000/ws
 ```
 ---
 ## docker-compose Services
@@ -219,6 +234,7 @@ DB_CONNECT_BACKOFF=2.0
 | ---------- | ----------------------------- |
 | `api`      | FastAPI REST API (Uvicorn)    |
 | `worker`   | Task consumer                 |
+| `frontend` | React dashboard (Vite dev)    |
 | `migrate`  | Alembic migrations job        |
 | `mysql`    | Persistent task DB            |
 | `redis`    | Pub/Sub for real-time updates |
@@ -231,6 +247,14 @@ DB_CONNECT_BACKOFF=2.0
 ```bash
 docker compose --project-directory deploy -f deploy/docker-compose.yml run --rm migrate
 ```
+
+### Frontend
+
+Once the stack is running, open `http://localhost:5001` to:
+
+- View the full task list and select tasks for detail view
+- Create new tasks which will immediately appear in the list
+- Observe live updates as the worker pushes state changes over WebSocket
 
 ---
 ## End-to-End Flow

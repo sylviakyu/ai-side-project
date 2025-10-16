@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     db_echo: bool = Field(False, env="DB_ECHO")
     db_connect_attempts: int = Field(10, env="DB_CONNECT_ATTEMPTS")
     db_connect_backoff: float = Field(2.0, env="DB_CONNECT_BACKOFF")
+    cors_allow_origins: str = Field("*", env="CORS_ALLOW_ORIGINS")
 
     class Config:
         env_file = ".env"
