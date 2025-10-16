@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+import asyncio
 
 from fastapi import FastAPI
 
@@ -34,10 +35,25 @@ def create_app(*, with_infra: bool = True) -> FastAPI:
             )
             dependencies.redis_client = RedisClient(settings.redis_url)
 
-            try:
-                await dependencies.database.create_all()
-            except Exception as exc:  # pragma: no cover - exercised in integration setups
-                logger.warning("Database initialisation failed: %s", exc)
+            db_attempts = settings.db_connect_attempts
+            db_backoff = settings.db_connect_backoff
+            for attempt in range(1, db_attempts + 1):
+                try:
+                    await dependencies.database.create_all()
+                    break
+                except Exception as exc:  # pragma: no cover - exercised in integration setups
+                    if attempt == db_attempts:
+                        logger.warning("Database initialisation failed: %s", exc)
+                        raise
+                    wait_time = db_backoff * attempt
+                    logger.warning(
+                        "Database unavailable (attempt %s/%s): %s. Retrying in %.1fs",
+                        attempt,
+                        db_attempts,
+                        exc,
+                        wait_time,
+                    )
+                    await asyncio.sleep(wait_time)
 
             try:
                 await dependencies.publisher.connect()

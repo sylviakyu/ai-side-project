@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     rabbitmq_exchange: str = Field("task.topic", env="RABBITMQ_EXCHANGE")
     rabbitmq_routing_key: str = Field("task.created", env="RABBITMQ_ROUTING_KEY")
     db_echo: bool = Field(False, env="DB_ECHO")
+    db_connect_attempts: int = Field(10, env="DB_CONNECT_ATTEMPTS")
+    db_connect_backoff: float = Field(2.0, env="DB_CONNECT_BACKOFF")
 
     class Config:
         env_file = ".env"

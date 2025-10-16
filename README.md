@@ -198,9 +198,15 @@ API_PORT=8000
 DB_URL=mysql+asyncmy://user:pass@mysql:3306/taskflow
 REDIS_URL=redis://redis:6379/0
 RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+DB_CONNECT_ATTEMPTS=10
+DB_CONNECT_BACKOFF=2.0
 
 # Worker
 WORKER_PREFETCH=8
+RABBITMQ_CONNECT_ATTEMPTS=10
+RABBITMQ_CONNECT_BACKOFF=2.0
+DB_CONNECT_ATTEMPTS=10
+DB_CONNECT_BACKOFF=2.0
 ```
 ---
 ## docker-compose Services
@@ -208,9 +214,18 @@ WORKER_PREFETCH=8
 | ---------- | ----------------------------- |
 | `api`      | FastAPI REST API (Uvicorn)    |
 | `worker`   | Task consumer                 |
+| `migrate`  | Alembic migrations job        |
 | `mysql`    | Persistent task DB            |
 | `redis`    | Pub/Sub for real-time updates |
 | `rabbitmq` | Message broker for tasks      |
+
+> The `migrate` service runs alembic upgrade head on startup and exits once it succeeds. The `api` and `worker` services will wait until this service has completed before starting.
+
+### Manual Migration
+
+```bash
+docker compose --project-directory deploy -f deploy/docker-compose.yml run --rm migrate
+```
 
 ---
 ## End-to-End Flow

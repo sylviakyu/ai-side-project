@@ -27,14 +27,30 @@ services:
       - "5672:5672"
       - "15672:15672"
 
-  api:
+  migrate:
     build:
       context: ..
       dockerfile: service_api/Dockerfile
     depends_on:
       - mysql
-      - redis
-      - rabbitmq
+    env_file:
+      - env.example
+    command: ["sh", "-c", "python scripts/wait_for_db.py && alembic upgrade head"]
+    restart: "no"
+
+  api:
+    build:
+      context: ..
+      dockerfile: service_api/Dockerfile
+    depends_on:
+      mysql:
+        condition: service_started
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
     env_file:
       - env.example
     ports:
@@ -45,9 +61,14 @@ services:
       context: ..
       dockerfile: service_worker/Dockerfile
     depends_on:
-      - mysql
-      - redis
-      - rabbitmq
+      mysql:
+        condition: service_started
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
     env_file:
       - env.example
 
