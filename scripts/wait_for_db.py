@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+"""Utility script that waits for the database to accept connections."""
+
 from __future__ import annotations
 
 import asyncio
@@ -15,6 +17,7 @@ BACKOFF = float(os.getenv("DB_CONNECT_BACKOFF", "2.0"))
 
 
 async def check_connection() -> None:
+    """Attempt a single async connection to the database and execute a ping."""
     engine = create_async_engine(DB_URL, echo=False)
     try:
         async with engine.connect() as conn:
@@ -24,6 +27,7 @@ async def check_connection() -> None:
 
 
 async def main() -> None:
+    """Retry database connectivity until it succeeds or the attempt budget is exhausted."""
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
             await check_connection()

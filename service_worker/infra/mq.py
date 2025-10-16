@@ -1,3 +1,5 @@
+"""RabbitMQ consumer utilities for the worker service."""
+
 from __future__ import annotations
 
 from typing import Awaitable, Callable, Optional
@@ -24,6 +26,7 @@ class TaskQueueConsumer:
         self._queue: Optional[aio_pika.Queue] = None
 
     async def connect(self, *, prefetch: int) -> None:
+        """Connect to RabbitMQ, declare bindings, and set QoS."""
         if self._connection:
             return
         self._connection = await aio_pika.connect_robust(self._amqp_url)
@@ -44,11 +47,13 @@ class TaskQueueConsumer:
         self,
         handler: Callable[[aio_pika.IncomingMessage], Awaitable[None]],
     ) -> None:
+        """Start consuming messages using the provided handler."""
         if self._queue is None:
             raise RuntimeError("Queue not initialised.")
         await self._queue.consume(handler, no_ack=False)
 
     async def close(self) -> None:
+        """Close the AMQP resources opened by connect()."""
         if self._connection:
             await self._connection.close()
         self._connection = None

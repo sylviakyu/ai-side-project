@@ -1,3 +1,5 @@
+"""Unit tests for the TaskFlow API task endpoints."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -43,6 +45,7 @@ class InMemoryTaskService:
 
 @pytest.fixture()
 def client():
+    """Yield a TestClient backed by the in-memory task service."""
     app = create_app(with_infra=False)
     service = InMemoryTaskService()
 
@@ -56,6 +59,7 @@ def client():
 
 
 def test_create_task_returns_pending_status(client: TestClient):
+    """POST /tasks should return a newly created task in PENDING state."""
     response = client.post(
         "/tasks",
         json={"title": "Example Task", "payload": {"value": 42}},
@@ -68,6 +72,7 @@ def test_create_task_returns_pending_status(client: TestClient):
 
 
 def test_get_task_returns_created_task(client: TestClient):
+    """GET /tasks/{id} should return the task previously created."""
     post_response = client.post("/tasks", json={"title": "Fetch Task"})
     task_id = post_response.json()["task_id"]
 
@@ -79,6 +84,7 @@ def test_get_task_returns_created_task(client: TestClient):
 
 
 def test_list_tasks_returns_all_created_tasks(client: TestClient):
+    """GET /tasks should return every task created during the test run."""
     titles = ["Task A", "Task B"]
     for title in titles:
         client.post("/tasks", json={"title": title})

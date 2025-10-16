@@ -1,3 +1,5 @@
+"""Task processing utilities used by the worker service."""
+
 from __future__ import annotations
 
 import asyncio
@@ -29,6 +31,7 @@ class TaskProcessor:
         progress: float,
         message: str | None = None,
     ) -> None:
+        """Persist a new status for the task and broadcast the progress update."""
         task.status = status
         task.updated_at = self._clock()
         if status in (TaskStatus.DONE, TaskStatus.FAILED):
@@ -50,10 +53,11 @@ class TaskProcessor:
             logger.warning("Failed to publish Redis message: %s", exc)
 
     async def _simulate_work(self, payload: Dict[str, Any]) -> None:
-        # Placeholder for CPU/IO intensive work - mimic load to illustrate lifecycle.
+        """Placeholder work stage to mimic a long-running computation."""
         await asyncio.sleep(1)
 
     async def process(self, session: AsyncSession, task_id: str, payload: Dict[str, Any] | None) -> None:
+        """Drive the full lifecycle for a task from PROCESSING to terminal status."""
         query = select(Task).where(Task.id == task_id)
         result = await session.execute(query)
         task = result.scalar_one_or_none()

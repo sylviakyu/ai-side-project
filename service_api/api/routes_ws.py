@@ -1,3 +1,5 @@
+"""WebSocket endpoint broadcasting task status updates."""
+
 from __future__ import annotations
 
 import json
@@ -18,6 +20,7 @@ async def websocket_endpoint(
     websocket: WebSocket,
     redis: Redis | None = Depends(redis_client_dependency),
 ) -> None:
+    """Stream every task status update to the connected WebSocket client."""
     if redis is None:
         await websocket.accept()
         await websocket.send_text(json.dumps(websocket_error("Realtime updates unavailable")))

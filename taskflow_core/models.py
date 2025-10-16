@@ -1,3 +1,5 @@
+"""SQLAlchemy ORM models representing the TaskFlow persistence layer."""
+
 from __future__ import annotations
 
 from datetime import datetime

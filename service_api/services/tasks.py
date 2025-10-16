@@ -1,3 +1,5 @@
+"""Service layer orchestrating task persistence and outbound events."""
+
 from __future__ import annotations
 
 import logging
@@ -39,6 +41,7 @@ class TaskService:
         self._publisher = publisher
 
     async def create_task(self, payload: TaskCreate) -> TaskRead:
+        """Persist a new task and publish a creation event."""
         task = Task(
             id=str(uuid4()),
             title=payload.title,
@@ -63,11 +66,13 @@ class TaskService:
         return _to_schema(task)
 
     async def list_tasks(self) -> list[TaskRead]:
+        """Return all tasks ordered by creation time (most recent first)."""
         result = await self._session.execute(select(Task).order_by(Task.created_at.desc()))
         tasks = result.scalars().all()
         return [_to_schema(task) for task in tasks]
 
     async def get_task(self, task_id: str) -> Optional[TaskRead]:
+        """Retrieve a task by id, returning None when missing."""
         query = select(Task).where(Task.id == task_id)
         result = await self._session.execute(query)
         task = result.scalar_one_or_none()

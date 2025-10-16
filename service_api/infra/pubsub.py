@@ -1,3 +1,5 @@
+"""Helpers for streaming task updates from Redis Pub/Sub."""
+
 from __future__ import annotations
 
 from typing import AsyncIterator

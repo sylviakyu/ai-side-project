@@ -1,3 +1,5 @@
+"""RabbitMQ publisher utilities for the API service."""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -24,6 +26,7 @@ class TaskEventPublisher:
         self._exchange: Optional[aio_pika.Exchange] = None
 
     async def connect(self) -> None:
+        """Establish a connection and declare the exchange if needed."""
         if self._connection:
             return
         self._connection = await aio_pika.connect_robust(self._amqp_url)
@@ -35,6 +38,7 @@ class TaskEventPublisher:
         )
 
     async def close(self) -> None:
+        """Gracefully close the AMQP connection."""
         if self._connection:
             await self._connection.close()
         self._connection = None
@@ -42,6 +46,7 @@ class TaskEventPublisher:
         self._exchange = None
 
     async def publish_task_created(self, message: TaskCreatedMessage) -> None:
+        """Send a `task.created` message to the configured exchange."""
         if self._connection is None or self._channel is None or self._exchange is None:
             await self.connect()
 

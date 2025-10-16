@@ -1,3 +1,5 @@
+"""Configuration models for the worker service."""
+
 from functools import lru_cache
 
 from pydantic import BaseSettings, Field

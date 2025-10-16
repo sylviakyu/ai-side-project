@@ -1,3 +1,5 @@
+"""Pydantic schemas shared between the API and worker services."""
+
 from __future__ import annotations
 
 from datetime import datetime

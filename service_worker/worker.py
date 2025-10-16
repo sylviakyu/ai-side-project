@@ -1,3 +1,5 @@
+"""Asynchronous worker consuming task events and updating task state."""
+
 from __future__ import annotations
 
 import asyncio
@@ -23,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def app_lifespan():
+    """Initialise shared infrastructure and ensure dependent services are ready."""
     settings = get_settings()
 
     database = create_database(settings.db_url, echo=settings.db_echo)
@@ -89,6 +92,7 @@ async def handle_message(
     redis: RedisPublisher,
     message: IncomingMessage,
 ) -> None:
+    """Process a task message, updating status transitions and broadcasting results."""
     async with message.process(ignore_processed=True):
         try:
             payload = json.loads(message.body)
@@ -170,6 +174,7 @@ async def handle_message(
 
 
 async def run_worker() -> None:
+    """Start the worker, registering the consumer and waiting indefinitely."""
     async with app_lifespan() as (database, redis, consumer):
         await consumer.consume(lambda message: handle_message(database, redis, message))
 
@@ -178,6 +183,7 @@ async def run_worker() -> None:
 
 
 def main() -> None:
+    """Entry point used by the container image to launch the worker."""
     logging.basicConfig(level=logging.INFO)
     try:
         asyncio.run(run_worker())

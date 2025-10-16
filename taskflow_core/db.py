@@ -1,3 +1,5 @@
+"""Async SQLAlchemy database helper utilities."""
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager

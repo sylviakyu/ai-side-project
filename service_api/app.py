@@ -1,11 +1,12 @@
+"""FastAPI application factory and lifespan management for TaskFlow."""
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
 import asyncio
+import logging
 
 from fastapi import FastAPI
-
-import logging
 
 from taskflow_core import Database
 
@@ -20,10 +21,12 @@ logger = logging.getLogger(__name__)
 
 
 def create_app(*, with_infra: bool = True) -> FastAPI:
+    """Instantiate the FastAPI application with optional infrastructure wiring."""
     settings = get_settings()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        """Initialise and tear down shared resources for the FastAPI lifespan."""
         from . import dependencies
 
         if with_infra:
@@ -79,15 +82,16 @@ def create_app(*, with_infra: bool = True) -> FastAPI:
         else:
             yield
 
-    app = FastAPI(title="TaskFlow API", lifespan=lifespan)
+    application = FastAPI(title="TaskFlow API", lifespan=lifespan)
 
-    @app.get("/healthz")
+    @application.get("/healthz")
     async def healthcheck() -> dict[str, str]:
+        """Provide a lightweight readiness indicator."""
         return {"status": "ok"}
 
-    app.include_router(tasks_router)
-    app.include_router(ws_router)
-    return app
+    application.include_router(tasks_router)
+    application.include_router(ws_router)
+    return application
 
 
 app = create_app()

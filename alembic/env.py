@@ -1,3 +1,5 @@
+"""Alembic migration environment configured for async MySQL."""
+
 from __future__ import annotations
 
 import asyncio
